@@ -1,0 +1,10 @@
+{
+  "autoLeaveVoice": true,
+  "autoLoadSounds": false,
+  "botPrefix": "bot",
+  "botToken": "yourbotkeyhere",
+  "commandTrigger": "!",
+  "demoMode": false,
+  "soundPath": "./sounds/",
+  "statsFileName": "./stats.json"
+}
