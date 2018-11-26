@@ -22,7 +22,9 @@ client.on('ready', () => {
 	client.user.setStatus('online');
 
 	// Order the channels.
-	orderChannels();
+	// orderChannels();
+	simpleOrderChannels();
+
 });
 /********Connect and perform routine maintenance.******/
 
@@ -80,6 +82,12 @@ client.on("message", function(message) {
 });
 /*******Dice Rolls*****/
 
+
+/******Add/Remove/list Groups permissions************/
+//maybe a database that we can add users, or maybe justa role, I'm thinking just a role....
+
+/******Add/Remove/list Groups permissions************/
+
 /******Add/Remove/list Groups************/
 client.on('message', message => {
 	if (message.content.startsWith(prefix + "addGroup:")) {
@@ -89,7 +97,7 @@ client.on('message', message => {
 			if (!row) {
 				sql.run('INSERT INTO groups (name) VALUES (?)', [newGroupName]);
 				var msg = '';
-				sql.each(`SELECT name FROM groups WHERE name IS NOT NULL`, function(err, row) {
+				sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
 					msg += row.name + "\n";
 				}).then(txt => {
 					//console.log(msg);
@@ -111,8 +119,28 @@ client.on('message', message => {
 			} else {
 				sql.run('DELETE FROM groups WHERE name = ?', rmGrp);
 				var msg = '';
-				sql.each(`SELECT name FROM groups WHERE name IS NOT NULL`, function(err, row) {
+				sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
 					msg += row.name + "\n";
+				}).then(txt => {
+					//console.log(msg);
+					//console.log(txt); //apparently this is the count.
+					message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
+				});
+				//message.reply(`${rmGrp} removed`);
+			}
+		});
+	}
+
+	if (message.content.startsWith(prefix + "removeGroupById:")) {
+		var rmGrp = message.content.split(":")[1].trim();
+		sql.get('SELECT * FROM groups WHERE number = ?', rmGrp).then(row => {
+			if (!row) {
+				message.reply('? was not found could not remove', rmGrp);
+			} else {
+				sql.run('DELETE FROM groups WHERE number = ?', rmGrp);
+				var msg = '';
+				sql.each(`SELECT name,number FROM groups WHERE name IS NOT NULL ORDER BY number`, function(err, row) {
+					msg += row.number + ". " + row.name + "\n";
 				}).then(txt => {
 					//console.log(msg);
 					//console.log(txt); //apparently this is the count.
@@ -125,8 +153,19 @@ client.on('message', message => {
 
 	if (message.content.startsWith(prefix + "groupList")) {
 		var msg = '';
-		sql.each(`SELECT name FROM groups WHERE name IS NOT NULL`, function(err, row) {
+		sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
 			msg += row.name + "\n";
+		}).then(txt => {
+			//console.log(msg);
+			//console.log(txt); //apparently this is the count.
+			message.reply("There are " + txt + " room names available, listed below.\n" + msg);
+		});
+	}
+
+	if (message.content.startsWith(prefix + "listGroups")) {
+		var msg = '';
+		sql.each(`SELECT name,number FROM groups WHERE name IS NOT NULL ORDER BY number`, function(err, row) {
+			msg += row.number + ". " + row.name + "\n";
 		}).then(txt => {
 			//console.log(msg);
 			//console.log(txt); //apparently this is the count.
@@ -147,6 +186,25 @@ client.on('message', message => {
 });
 /******hardcoded airhorn sound*****/
 
+/******hardcoded debug order check*****/
+client.on('message', message => {
+	if (message.content == "!orderCheck") {
+		_checking2(function(result) {
+			result.forEach(function(channel) {
+				console.log(channel.name + " @ " + channel.position);
+			});
+		});
+	}
+});
+
+client.on('message', message => {
+	if (message.content == "!orderNow") {
+		simpleOrderChannels();
+		// orderChannels();
+	}
+});
+/******hardcoded debug order check*****/
+
 /********************Hardcoded sounds because Aaron really wanted it so this was quicker**********/
 client.on('message', message => {
 	if (message.content.startsWith("!hitme")) {
@@ -155,7 +213,10 @@ client.on('message', message => {
 			case "VisualIdle":
 				playSound(voiceChannel, './sounds/MondayNightFootball.mp3');
 				break;
-			case "Stealthgyro":
+			case "Gyro":
+				playSound(voiceChannel, './sounds/droctagonapus.mp3');
+				break;
+			case "Jason Christ":
 				playSound(voiceChannel, './sounds/droctagonapus.mp3');
 				break;
 			case "I3adI3illy":
@@ -187,15 +248,33 @@ client.on('guildUpdate', (guildB4, guildNew) => {
 
 client.on('channelUpdate', (chanB4, chanNew) => { //someone modified a channel
 	if (chanNew.id == chanNew.guild.afkChannelID) { //If this channel is the AFK channel
-		if ((chanB4.position > chanNew.position)) { //And it's moved to smaller number (higher in the list)
-			console.log("afk channel move attempt"); //log that shit
-			orderChannels(); //and just run the function that orders all the channels.... lazy-ish but it helps with some other problems where it would be in a weird place.
-			//chanNew.setPosition(chanB4.position);
-		}
 		if (chanNew.name != String.fromCodePoint('0x231b') + "AFK") { //if someone tried to rename it...
 			console.log("AFK Rename attempt");
 			chanNew.setName(String.fromCodePoint('0x231b') + "AFK"); //set that shit back.
 		}
+		_checkLargest(function(result) {
+			if (chanNew.position < result) {
+				console.log("afk channel move attempt"); //log that shit
+				var x = result + 100;
+				chanNew.edit({
+						position: x
+					}).then(newChannel => console.log(`Channel's new position is ${newChannel.position}`))
+					.catch(console.error);
+			}
+		});
+	}
+});
+
+//We need spaces between channels, basically if number is below 100 let's reorganize them.
+client.on('channelUpdate', (chanB4, chanNew) => { //someone modified a channel
+	//console.log("chanNew.position: " + chanNew.position);
+	if(chanNew.position < 100){
+	chanNew.edit({
+			position: (chanNew.position + 1) * 100
+		})
+		.then(newChannel => {
+			console.log(`Channel ${newChannel.name} new position is ${newChannel.position}`); //position...
+		})
 	}
 });
 
@@ -209,12 +288,14 @@ client.on('channelCreate', function(channel) {
 				})
 				.then(newChannel => {
 					console.log(`Channel's new name is ${newChannel.name}`); //it gets renamed to Fake AFK and we order the channels again.
-					orderChannels();
+					simpleOrderChannels();
+					// orderChannels();
 				})
 				.catch(console.error);
 		}
-	} else if (!channel.name.startsWith(String.fromCodePoint('0x2501'))) { 
-		orderChannels();
+	} else if (!channel.name.startsWith(String.fromCodePoint('0x2501'))) {
+		simpleOrderChannels();
+		// orderChannels();
 	}
 });
 
@@ -229,12 +310,14 @@ client.on('channelDelete', function(channel) {
 			.then(channel => {
 				guildd.setAFKChannel(channel);
 				channel.edit({
+					parent_id: channel.parentID,
 					position: channel.position + 50
 				})
 			})
 			.catch(console.error);
 	} else if (!channel.name.startsWith(String.fromCodePoint('0x2501'))) {
-		orderChannels();
+		simpleOrderChannels();
+		// orderChannels();
 	}
 });
 /********Fighting I3illy for making sure AFK is on the bottom********/
@@ -249,6 +332,8 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 		const newChannel = member.guild.channels.get(member.voiceChannelID);
 		const guildd = member.guild;
 
+		//console.log(newChannel.bitrate);
+
 		// If the user entered a game channel (prefixed with a game controller unicode emoji), group them into their own channel.
 		//https://emojipedia.org or where I get the code i.e. video game https://emojipedia.org/video-game/ is the controller https://emojipedia.org/emoji/%F0%9F%8E%AE/ Codepoints U+1F3AE becomes String.fromCodePoint('0x1F3AE')
 		if (newChannel.name.startsWith(String.fromCodePoint('0x1F3AE'))) {
@@ -257,9 +342,9 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 				guildd.createChannel(String.fromCodePoint('0x2501') + " " + groupName, 'voice', newChannel.permissionOverwrites)
 					.then(createdChannel => {
 						// console.log("userLimit: " + newChannel.userLimit);
-						// console.log("parent: " + newChannel.parentID);
+						// console.log("bitrate: " + oldMember.bitrate);
 						createdChannel.edit({
-								bitrate: 32000,
+								bitrate: newChannel.bitrate * 1000,
 								parent_id: newChannel.parentID,
 								position: newChannel.position + 1,
 								user_limit: newChannel.userLimit
@@ -327,11 +412,9 @@ function randomGroupName(callback) {
 }
 
 // Function to reorder channels.
-function orderChannels() {
-	// Get a list of channels.
+function orderChannels() { // Get a list of channels.
 	var channelsOrdered = client.channels.array().slice(0);
 	var afk_channel_id = [];
-
 	// Evaluate only voice channels.
 	channelsOrdered = channelsOrdered.filter(function(channel) {
 		return channel.type == 'voice' && typeof channel.position !== 'undefined';
@@ -347,10 +430,13 @@ function orderChannels() {
 		return channel.id == channel.guild.afkChannelID;
 	});
 	afk_channel_id = afk_channel_id[0].id;
-	console.log("afk_channel_id: " + afk_channel_id);
+	// console.log("afk_channel_id: " + afk_channel_id);
 
 	// Re-sort channels to support auto-grouping and 64kbps for balance of quality and bandwidth.
 	var currentPosition = 100;
+	channelsOrdered.forEach(function(channel) {
+		console.log(channel.name + " @ " + channel.position);
+	});
 	channelsOrdered.forEach(function(channel) {
 		currentChannel = client.channels.get(channel.id);
 		if (currentChannel.name.startsWith(String.fromCodePoint('0x2501')) && !currentChannel.members.array().length) {
@@ -363,21 +449,21 @@ function orderChannels() {
 		} else {
 			if (currentChannel.id != afk_channel_id) {
 				currentChannel.edit({
-						bitrate: 32000,
+						bitrate: currentChannel.bitrate * 1000,
 						position: currentPosition
 					})
 					.then(editedChannel => {
-						console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate / 1000 + 'kbps bitrate')
+						console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate + 'kbps bitrate')
 					})
 					.catch(console.error);
 				if (currentChannel.name == String.fromCodePoint('0x231b') + "AFK") {
 					currentChannel.edit({
 							name: "Fake AFK",
-							bitrate: 32000,
+							bitrate: currentChannel.bitrate * 1000,
 							position: currentPosition
 						})
 						.then(editedChannel => {
-							console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate / 1000 + 'kbps bitrate')
+							console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate + 'kbps bitrate')
 						})
 						.catch(console.error);
 				}
@@ -393,11 +479,133 @@ function orderChannels() {
 			position: currentPosition
 		})
 		.then(editedChannel => {
-			console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate / 1000 + 'kbps bitrate')
+			console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate + 'kbps bitrate')
 		})
 		.catch(console.error);
 }
 
+// Function to reorder channels.
+function simpleOrderChannels() { // Get a list of channels.
+	var channelsOrdered = client.channels.array().slice(0);
+	var afk_channel_id = [];
+	// Evaluate only voice channels.
+	channelsOrdered = channelsOrdered.filter(function(channel) {
+		return channel.type == 'voice' && typeof channel.position !== 'undefined';
+	});
+
+	// Sort channels by their current position.
+	channelsOrdered = channelsOrdered.sort(function(channelA, channelB) {
+		return channelA.position - channelB.position;
+	});
+
+	// Re-sort channels to support auto-grouping
+	var currentPosition = 100;
+	channelsOrdered.forEach(function(channel) {
+		console.log(channel.name + " @ " + channel.position);
+	});
+	channelsOrdered.forEach(function(channel) {
+		currentChannel = client.channels.get(channel.id);
+		if (currentChannel.name.startsWith(String.fromCodePoint('0x2501')) && !currentChannel.members.array().length) {
+			const oldChannel = currentChannel;
+			currentChannel.delete()
+				.then(function() {
+					console.log('[' + new Date().toISOString() + '] Deleted ' + oldChannel.type + ' channel "' + oldChannel.name + '" (' + oldChannel.id + ')');
+				})
+				.catch(console.error);
+		} else {
+			currentChannel.edit({
+					position: currentPosition
+				})
+				.then(editedChannel => {
+					console.log('[' + new Date().toISOString() + '] Set ' + editedChannel.type + ' channel "' + editedChannel.name + '" (' + editedChannel.id + ') position to ' + editedChannel.position + ' with ' + editedChannel.bitrate + 'kbps bitrate')
+				})
+				.catch(console.error);
+			currentPosition += 100;
+		}
+	});
+
+}
+
+// Function to reorder channels.
+function checkChannelOrder() { // Get a list of channels.
+	var channelsOrdered = client.channels.array().slice(0);
+	var afk_channel_id = [];
+	// Evaluate only voice channels.
+	channelsOrdered = channelsOrdered.filter(function(channel) {
+		return channel.type == 'voice' && typeof channel.position !== 'undefined';
+	});
+
+	// Sort channels by their current position.
+	channelsOrdered = channelsOrdered.sort(function(channelA, channelB) {
+		return channelA.position - channelB.position;
+	});
+	//console.log(channelsOrdered);
+	/*for(var members in channelsOrdered){
+		console.log(channelsOrdered[members].position);
+	}*/
+
+	afk_channel_id = channelsOrdered.filter(function(channel) {
+		//var getChannel = client.channels.get(channel.id);
+		return channel.id == channel.guild.afkChannelID;
+	});
+	afk_channel_id = afk_channel_id[0].id;
+	//console.log('Checking Order start');
+	var myChannelObj = {};
+	channelsOrdered.forEach(function(channel) {
+		//console.log(channel.name + " @ " + channel.position);
+	});
+	return channelsOrdered;
+	//console.log('Checking Order end');
+	//console.log("afk_channel_id: " + afk_channel_id);
+}
+
+//call back function for getting existing order
+function _checking2(callback) {
+	var channelsOrdered = client.channels.array().slice(0);
+	var afk_channel_id = [];
+	// Evaluate only voice channels.
+	channelsOrdered = channelsOrdered.filter(function(channel) {
+		return channel.type == 'voice' && typeof channel.position !== 'undefined';
+	});
+
+	// Sort channels by their current position.
+	channelsOrdered = channelsOrdered.sort(function(channelA, channelB) {
+		return channelA.position - channelB.position;
+	});
+
+	afk_channel_id = channelsOrdered.filter(function(channel) {
+		//var getChannel = client.channels.get(channel.id);
+		return channel.id == channel.guild.afkChannelID;
+	});
+	afk_channel_id = afk_channel_id[0].id;
+	callback(channelsOrdered);
+}
+
+//call back function for getting largest number...
+function _checkLargest(callback) {
+	var channelsOrdered = client.channels.array().slice(0);
+	var afk_channel_id = [];
+	// Evaluate only voice channels.
+	channelsOrdered = channelsOrdered.filter(function(channel) {
+		return channel.type == 'voice' && typeof channel.position !== 'undefined';
+	});
+
+	// Sort channels by their current position.
+	channelsOrdered = channelsOrdered.sort(function(channelA, channelB) {
+		return channelA.position - channelB.position;
+	});
+
+	afk_channel_id = channelsOrdered.filter(function(channel) {
+		//var getChannel = client.channels.get(channel.id);
+		return channel.id == channel.guild.afkChannelID;
+	});
+	afk_channel_id = afk_channel_id[0].id;
+	var positionArr = [];
+	channelsOrdered.forEach(function(channel) {
+		positionArr.push(channel.position);
+	});
+	callback(Math.max.apply(null, positionArr));
+}
 
 //sound playback 1
 function playSound(voiceChannel, sound) {
