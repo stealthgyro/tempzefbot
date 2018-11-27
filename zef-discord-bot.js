@@ -191,12 +191,12 @@ client.on('message', message => {
 
 /******users leaving*****/
 client.on('guildMemberRemove', member => {
-  // Send the message to a designated channel on a server:
-  const channel = member.guild.channels.find(ch => ch.name === 'logs');
-  // Do nothing if the channel wasn't found on this server
-  if (!channel) return;
-  // Send the message, mentioning the member
-  channel.send(`User, ${member} has left the Discord.`);
+	// Send the message to a designated channel on a server:
+	const channel = member.guild.channels.find(ch => ch.name === 'logs');
+	// Do nothing if the channel wasn't found on this server
+	if (!channel) return;
+	// Send the message, mentioning the member
+	channel.send(`User, ${member} has left the Discord.`);
 });
 /******users leaving*****/
 
@@ -226,15 +226,15 @@ client.on('message', message => {
 
 // Create an event listener for messages
 client.on('message', message => {
-  // If the message is "what is my avatar"
-  if (message.content === 'what is my avatar') {
-    // Send the user's avatar URL
-    if(message.author.avatar){
-    	message.reply(message.author.avatar);
-    }else{
-    	message.reply("you don't have one you heathen");
-    }
-  }
+	// If the message is "what is my avatar"
+	if (message.content === 'what is my avatar') {
+		// Send the user's avatar URL
+		if (message.author.avatarURL) {
+			message.reply(message.author.avatarURL);
+		} else {
+			message.reply("you don't have one you heathen");
+		}
+	}
 });
 /******hardcoded debug order check*****/
 
@@ -326,10 +326,11 @@ client.on('channelCreate', function(channel) {
 				})
 				.catch(console.error);
 		}
-	} else if (!channel.name.startsWith(String.fromCodePoint('0x2501'))) {
+	}
+	/*else if (!channel.name.startsWith(String.fromCodePoint('0x2501'))) {
 		simpleOrderChannels();
 		// orderChannels();
-	}
+	}*/
 });
 
 
@@ -364,6 +365,7 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 	if (member.voiceChannelID) {
 		const newChannel = member.guild.channels.get(member.voiceChannelID);
 		const guildd = member.guild;
+		const hasAvatar = member.user.avatar ? true : false;
 
 		//console.log(newChannel.bitrate);
 
@@ -372,6 +374,7 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 		if (newChannel.name.startsWith(String.fromCodePoint('0x1F3AE'))) {
 			randomGroupName(function(groupName) {
 				//newChannel.clone(String.fromCodePoint('0x2501') + " " + groupName, true)
+				console.log(newChannel.permissionOverwrites);
 				guildd.createChannel(String.fromCodePoint('0x2501') + " " + groupName, 'voice', newChannel.permissionOverwrites)
 					.then(createdChannel => {
 						// console.log("userLimit: " + newChannel.userLimit);
@@ -384,7 +387,9 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 							})
 							.then(createdChannel => {
 								member.setVoiceChannel(createdChannel)
-									.then(console.log('[' + new Date().toISOString() + '] Moved user "' + member.user.username + '#' + member.user.discriminator + '" (' + member.user.id + ') to ' + createdChannel.type + ' channel "' + createdChannel.name + '" (' + createdChannel.id + ') at position ' + createdChannel.position))
+									.then(function() {
+										console.log('[' + new Date().toISOString() + '] Moved user "' + member.user.username + '#' + member.user.discriminator + '" (' + member.user.id + ') to ' + createdChannel.type + ' channel "' + createdChannel.name + '" (' + createdChannel.id + ') at position ' + createdChannel.position);
+									})
 									.catch("A" + console.error);
 							})
 							.catch("B" + console.error);
@@ -392,6 +397,25 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 					.catch("C" + console.error);
 			});
 		}
+
+		/********Mute until avatar....******/
+		if (newChannel.name.startsWith(String.fromCodePoint('0x2501'))) {
+			//avatar goodness...
+			if (!hasAvatar) {
+				member.user.send("It looks like you're missing an avatar, check out instructions here! https://support.discordapp.com/hc/en-us/articles/204156688-How-do-I-change-my-avatar-");
+				/*if (!member.serverMute) {
+					member.setMute(true, 'no avatar');
+					member.user.send('You are muted until you have an avatar');
+				}*/
+			} else {
+				//do nothing for now.
+				/*if (member.serverMute) {
+					member.user.send('Congratulations you can talk again since you have an avatar!');
+					member.setMute(false, 'now has an avatar');
+				}*/
+			}
+		}
+		/********Mute until avatar....******/
 	}
 
 	// Check if the user came from another channel.
