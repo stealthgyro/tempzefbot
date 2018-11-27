@@ -9,6 +9,10 @@ Very very very important, I customozied DiscordJS 11.4.x I have a pull request f
 you can see this here
 https://github.com/discordjs/discord.js/pull/2971
 
+Something not in that is I updated the createChannel method as well
+permission_overwrites: overwrites,
+since I'm passing that directly, not really sure why it was trying to pull some other method.
+
 This is bascially to actually be aware of the parent category of a channel.
 
 
