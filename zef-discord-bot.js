@@ -37,6 +37,7 @@ client.on('message', message => {
 /*******Ignore DM channels and bots.*******/
 
 /*******Dice Rolls*****/
+//you can roll anywhere.
 client.on("message", function(message) {
 	var channel_id = message.channel.id;
 	//var regexp = new RegExp("/^\\" + prefix + "roll ([1-9][0-9]*)d([1-9][0-9]*)/"); //failed to use prefix variable idea
@@ -90,87 +91,89 @@ client.on("message", function(message) {
 
 /******Add/Remove/list Groups************/
 client.on('message', message => {
-	if (message.content.startsWith(prefix + "addGroup:")) {
-		//console.log(message);
-		var newGroupName = message.content.split(':')[1].trim();
-		sql.get('SELECT * FROM groups WHERE name = ?', newGroupName).then(row => {
-			if (!row) {
-				sql.run('INSERT INTO groups (name) VALUES (?)', [newGroupName]);
-				var msg = '';
-				sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
-					msg += row.name + "\n";
-				}).then(txt => {
-					//console.log(msg);
-					//console.log(txt); //apparently this is the count.
-					message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
-				});
-				//message.reply(`${newGroupName} has been added to the list`);
-			} else {
-				message.reply('? is already in the database', newGroupName);
-			}
-		});
-	}
+	if (message.channel.name === 'bot-commands') {
+		if (message.content.startsWith(prefix + "addGroup:")) {
+			//console.log(message);
+			var newGroupName = message.content.split(':')[1].trim();
+			sql.get('SELECT * FROM groups WHERE name = ?', newGroupName).then(row => {
+				if (!row) {
+					sql.run('INSERT INTO groups (name) VALUES (?)', [newGroupName]);
+					var msg = '';
+					sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
+						msg += row.name + "\n";
+					}).then(txt => {
+						//console.log(msg);
+						//console.log(txt); //apparently this is the count.
+						message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
+					});
+					//message.reply(`${newGroupName} has been added to the list`);
+				} else {
+					message.reply('? is already in the database', newGroupName);
+				}
+			});
+		}
 
-	if (message.content.startsWith(prefix + "removeGroup:")) {
-		var rmGrp = message.content.split(":")[1].trim();
-		sql.get('SELECT * FROM groups WHERE name = ?', rmGrp).then(row => {
-			if (!row) {
-				message.reply('? was not found could not remove', rmGrp);
-			} else {
-				sql.run('DELETE FROM groups WHERE name = ?', rmGrp);
-				var msg = '';
-				sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
-					msg += row.name + "\n";
-				}).then(txt => {
-					//console.log(msg);
-					//console.log(txt); //apparently this is the count.
-					message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
-				});
-				//message.reply(`${rmGrp} removed`);
-			}
-		});
-	}
+		if (message.content.startsWith(prefix + "removeGroup:")) {
+			var rmGrp = message.content.split(":")[1].trim();
+			sql.get('SELECT * FROM groups WHERE name = ?', rmGrp).then(row => {
+				if (!row) {
+					message.reply('? was not found could not remove', rmGrp);
+				} else {
+					sql.run('DELETE FROM groups WHERE name = ?', rmGrp);
+					var msg = '';
+					sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
+						msg += row.name + "\n";
+					}).then(txt => {
+						//console.log(msg);
+						//console.log(txt); //apparently this is the count.
+						message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
+					});
+					//message.reply(`${rmGrp} removed`);
+				}
+			});
+		}
 
-	if (message.content.startsWith(prefix + "removeGroupById:")) {
-		var rmGrp = message.content.split(":")[1].trim();
-		sql.get('SELECT * FROM groups WHERE number = ?', rmGrp).then(row => {
-			if (!row) {
-				message.reply('? was not found could not remove', rmGrp);
-			} else {
-				sql.run('DELETE FROM groups WHERE number = ?', rmGrp);
-				var msg = '';
-				sql.each(`SELECT name,number FROM groups WHERE name IS NOT NULL ORDER BY number`, function(err, row) {
-					msg += row.number + ". " + row.name + "\n";
-				}).then(txt => {
-					//console.log(msg);
-					//console.log(txt); //apparently this is the count.
-					message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
-				});
-				//message.reply(`${rmGrp} removed`);
-			}
-		});
-	}
+		if (message.content.startsWith(prefix + "removeGroupById:")) {
+			var rmGrp = message.content.split(":")[1].trim();
+			sql.get('SELECT * FROM groups WHERE number = ?', rmGrp).then(row => {
+				if (!row) {
+					message.reply('? was not found could not remove', rmGrp);
+				} else {
+					sql.run('DELETE FROM groups WHERE number = ?', rmGrp);
+					var msg = '';
+					sql.each(`SELECT name,number FROM groups WHERE name IS NOT NULL ORDER BY number`, function(err, row) {
+						msg += row.number + ". " + row.name + "\n";
+					}).then(txt => {
+						//console.log(msg);
+						//console.log(txt); //apparently this is the count.
+						message.reply("There are now " + txt + " room names available, listed below.\n" + msg);
+					});
+					//message.reply(`${rmGrp} removed`);
+				}
+			});
+		}
 
-	if (message.content.startsWith(prefix + "groupList")) {
-		var msg = '';
-		sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
-			msg += row.name + "\n";
-		}).then(txt => {
-			//console.log(msg);
-			//console.log(txt); //apparently this is the count.
-			message.reply("There are " + txt + " room names available, listed below.\n" + msg);
-		});
-	}
+		if (message.content.startsWith(prefix + "groupList")) {
+			var msg = '';
+			sql.each(`SELECT name FROM groups WHERE name IS NOT NULL ORDER BY name`, function(err, row) {
+				msg += row.name + "\n";
+			}).then(txt => {
+				//console.log(msg);
+				//console.log(txt); //apparently this is the count.
+				message.reply("There are " + txt + " room names available, listed below.\n" + msg);
+			});
+		}
 
-	if (message.content.startsWith(prefix + "listGroups")) {
-		var msg = '';
-		sql.each(`SELECT name,number FROM groups WHERE name IS NOT NULL ORDER BY number`, function(err, row) {
-			msg += row.number + ". " + row.name + "\n";
-		}).then(txt => {
-			//console.log(msg);
-			//console.log(txt); //apparently this is the count.
-			message.reply("There are " + txt + " room names available, listed below.\n" + msg);
-		});
+		if (message.content.startsWith(prefix + "listGroups")) {
+			var msg = '';
+			sql.each(`SELECT name,number FROM groups WHERE name IS NOT NULL ORDER BY number`, function(err, row) {
+				msg += row.number + ". " + row.name + "\n";
+			}).then(txt => {
+				//console.log(msg);
+				//console.log(txt); //apparently this is the count.
+				message.reply("There are " + txt + " room names available, listed below.\n" + msg);
+			});
+		}
 	}
 
 });
@@ -178,22 +181,39 @@ client.on('message', message => {
 
 
 /******hardcoded airhorn sound*****/
-client.on('message', message => {
+/*client.on('message', message => {
 	if (message.content == "!airhorn") {
 		var voiceChannel = message.member.voiceChannel;
 		playSound(voiceChannel, './sounds/airhorn.wav');
 	}
-});
+});*/
 /******hardcoded airhorn sound*****/
+
+/******users leaving*****/
+client.on('guildMemberRemove', member => {
+  // Send the message to a designated channel on a server:
+  const channel = member.guild.channels.find(ch => ch.name === 'logs');
+  // Do nothing if the channel wasn't found on this server
+  if (!channel) return;
+  // Send the message, mentioning the member
+  channel.send(`User, ${member} has left the Discord.`);
+});
+/******users leaving*****/
 
 /******hardcoded debug order check*****/
 client.on('message', message => {
-	if (message.content == "!orderCheck") {
-		_checking2(function(result) {
-			result.forEach(function(channel) {
-				console.log(channel.name + " @ " + channel.position);
+	if (message.channel.name === 'airhorn') {
+		if (message.content == "!airhorn") {
+			var voiceChannel = message.member.voiceChannel;
+			playSound(voiceChannel, './sounds/airhorn.wav');
+		}
+		if (message.content == "!orderCheck") {
+			_checking2(function(result) {
+				result.forEach(function(channel) {
+					console.log(channel.name + " @ " + channel.position);
+				});
 			});
-		});
+		}
 	}
 });
 
@@ -202,6 +222,19 @@ client.on('message', message => {
 		simpleOrderChannels();
 		// orderChannels();
 	}
+});
+
+// Create an event listener for messages
+client.on('message', message => {
+  // If the message is "what is my avatar"
+  if (message.content === 'what is my avatar') {
+    // Send the user's avatar URL
+    if(message.author.avatar){
+    	message.reply(message.author.avatar);
+    }else{
+    	message.reply("you don't have one you heathen");
+    }
+  }
 });
 /******hardcoded debug order check*****/
 
@@ -268,13 +301,13 @@ client.on('channelUpdate', (chanB4, chanNew) => { //someone modified a channel
 //We need spaces between channels, basically if number is below 100 let's reorganize them.
 client.on('channelUpdate', (chanB4, chanNew) => { //someone modified a channel
 	//console.log("chanNew.position: " + chanNew.position);
-	if(chanNew.position < 100){
-	chanNew.edit({
-			position: (chanNew.position + 1) * 100
-		})
-		.then(newChannel => {
-			console.log(`Channel ${newChannel.name} new position is ${newChannel.position}`); //position...
-		})
+	if (chanNew.position < 100) {
+		chanNew.edit({
+				position: (chanNew.position + 1) * 100
+			})
+			.then(newChannel => {
+				console.log(`Channel ${newChannel.name} new position is ${newChannel.position}`); //position...
+			})
 	}
 });
 
