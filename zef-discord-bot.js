@@ -403,16 +403,9 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 			//avatar goodness...
 			if (!hasAvatar) {
 				member.user.send("It looks like you're missing an avatar, check out instructions here! https://support.discordapp.com/hc/en-us/articles/204156688-How-do-I-change-my-avatar-");
-				/*if (!member.serverMute) {
-					member.setMute(true, 'no avatar');
-					member.user.send('You are muted until you have an avatar');
-				}*/
+				console.log(member.user.username + " Messaged to get an avatar");
 			} else {
 				//do nothing for now.
-				/*if (member.serverMute) {
-					member.user.send('Congratulations you can talk again since you have an avatar!');
-					member.setMute(false, 'now has an avatar');
-				}*/
 			}
 		}
 		/********Mute until avatar....******/
