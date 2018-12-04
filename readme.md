@@ -6,11 +6,7 @@ Sounds have been hardcoded, howeever if I ever get around to I want to implement
 
 My parent and userLimit were set wrong, I've corrcted this in zef-discord-bot.js, also restored the updateChannel function node_modules/discord.js/src/client/rest/RESTMethods.js
 
-Something not in that is I updated the createChannel method as well
-permission_overwrites: overwrites,
-since I'm passing that directly, not really sure why it was trying to pull some other method.
-
-This is bascially to actually be aware of the parent category of a channel.
+createChannel hase an issue with permissions when it comes to 11.4.2, but grabbing a 11.4-dev seemed to fix all my issues.
 
 
 This bot is not designed for multiple server AT ALL!
