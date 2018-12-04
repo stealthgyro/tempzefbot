@@ -344,7 +344,7 @@ client.on('channelDelete', function(channel) {
 			.then(channel => {
 				guildd.setAFKChannel(channel);
 				channel.edit({
-					parent_id: channel.parentID,
+					parent: channel.parentID,
 					position: channel.position + 50
 				})
 			})
@@ -381,9 +381,9 @@ client.on('voiceStateUpdate', (oldMember, member) => {
 						// console.log("bitrate: " + oldMember.bitrate);
 						createdChannel.edit({
 								bitrate: newChannel.bitrate * 1000,
-								parent_id: newChannel.parentID,
+								parent: newChannel.parentID,
 								position: newChannel.position + 1,
-								user_limit: newChannel.userLimit
+								userLimit: newChannel.userLimit
 							})
 							.then(createdChannel => {
 								member.setVoiceChannel(createdChannel)
